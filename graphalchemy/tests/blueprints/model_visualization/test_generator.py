@@ -92,7 +92,7 @@ class TestGraphvizVisualizationGenerator(TestCase):
     def test_nodes(self):
         # assertIn
         node_test_values = ['node_Page [ label =  "[Page] \\n\\n\\ - url\\n\\\n- title",\n $$  ];',
-                            'node_Website [ label =  "[Website] \\n\\n\\ - domain\\n\\\n- name\\n\\\n- tags",\n $$  ];']
+                            'node_Website [ label =  "[Website] \\n\\n\\ - domain\\n\\\n- Website_name\\n\\\n- tags",\n $$  ];']
         for node in self.visualization_generator._nodes.values():
             node = re.sub('color = ".*"', "$$", node)
             self.assertIn(node, node_test_values)
