@@ -8,7 +8,10 @@ setup(
     description='Object-Graph Mapper (OGM) for Python '
                 'compatible with Blueprint enabled graphs',
     long_description=open('README.md').read(),
-    packages=['graphalchemy', 'graphalchemy.fixture', 'graphalchemy.tests'],
+    packages=['graphalchemy',
+              'graphalchemy.fixture',
+              'graphalchemy.tests',
+              'graphalchemy.blueprints'],
     classifiers=[
         'Development Status :: 0.1 - Dev',
         'Environment :: Web Environment',
