@@ -31,7 +31,7 @@ class BulbsMetadata(object):
     >>>
     >>> website = Website(domain="http://www.allrecipes.com")
     >>> ogm.add(website)
-    >>> ogm.flush()
+    >>> ogm.commit()
 
     Ultimately, the object-to-graph mapping will be performed through a metadata
     builder, which will not require the model object to extend a specific class :

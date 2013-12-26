@@ -50,7 +50,7 @@ class RepositoryTestCase(TestCase):
 		website_obj = Page(title='Title', url="http://allrecipes.com/page/1")
 
 		self.session.add(website_obj)
-		self.session.flush()
+		self.session.commit()
 
 		# If the session is not cleared, the entity stays in the entity map and
 		# returns the same object.
@@ -78,7 +78,7 @@ class RepositoryTestCase(TestCase):
 		print results
 		for result in results:
 			self.session.delete(result)
-		self.session.flush()
+		self.session.commit()
 		print results
 
 

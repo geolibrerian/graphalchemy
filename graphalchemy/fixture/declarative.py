@@ -112,10 +112,10 @@ mapper(Website, website, adjacencies={
 # ogm = Session(client=client, metadata=metadata, logger=log)
 
 # ogm.add(website_obj)
-# ogm.flush()
+# ogm.commit()
 
 # website_obj.name = 'AllRecipes 2'
 # ogm.add(website_obj)
-# ogm.flush()
+# ogm.commit()
 
 

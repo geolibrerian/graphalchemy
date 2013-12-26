@@ -20,7 +20,7 @@ GraphAlachemy is built with the following ideas in mind :
 
 GraphAlchemy does not make use of fancy Pythonic tricks. You stay in control of
 what happens :
-- you control when flushes happen
+- you control when commites happen
 - you can create objects without pre-persisting them
 - you can merge pre-hydrated objects with their image in the database
 _ ...
