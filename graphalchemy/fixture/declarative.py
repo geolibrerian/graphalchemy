@@ -70,52 +70,17 @@ websiteHostsPageZ = Relationship('hosts', metadata,
     Property('accessible', Boolean())
 )
 
-websiteHostsPage_out = Adjacency(website,
+websiteHostsPage_adj = Adjacency(website, websiteHostsPageZ, page,
     direction=Relationship.OUT,
     unique=False,
     nullable=True
 )
-websiteHostsPage_in = Adjacency(page,
-    direction=Relationship.IN,
-    unique=True,
-    nullable=False
-)
-
 
 mapper(WebsiteHostsPage, websiteHostsPageZ)
 mapper(Page, page, adjacencies={
-    'isHostedBy': websiteHostsPage_in
+    'isHostedBy': websiteHostsPage_adj
 })
 mapper(Website, website, adjacencies={
-    'hosts': websiteHostsPage_out
+    'hosts': websiteHostsPage_adj
 })
-
-
-# website_obj = Website()
-# website_obj.name = 'AllRecipes'
-# website_obj.domain = 'http://allrecipes.com'
-# website_obj.description = 'Interesting recipe website'
-# website_obj.content = 'A lot !'
-
-# metadata_map = {
-#     'Website': website
-# }
-# identity_map = {}
-
-# from bulbs.titan import TitanClient
-# client = TitanClient(db_name="graph")
-# from bulbs.rest import log
-# log.setLevel(1)
-
-
-# from graphalchemy.ogm.session import Session
-# ogm = Session(client=client, metadata=metadata, logger=log)
-
-# ogm.add(website_obj)
-# ogm.commit()
-
-# website_obj.name = 'AllRecipes 2'
-# ogm.add(website_obj)
-# ogm.commit()
-
 

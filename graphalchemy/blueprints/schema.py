@@ -35,6 +35,7 @@ class Model(object):
         self._properties = {}
         self._adjacencies = {}
         self.indices = {}
+        self.class_ = None
         self.logger = kwargs.get('logger', None)
 
 
@@ -133,6 +134,7 @@ class Node(Model):
         :type properties: list<graphalchemy.blueprints.model.Property>
         """
         super(Node, self).__init__(model_name, metadata, *args, **kwargs)
+        self.class_ = None
         for prop in args:
             if prop.primaryKey == True:
                 raise Exception('Only edge properties can be primaryKeys.')
@@ -148,6 +150,7 @@ class Node(Model):
         :returns: This object itself.
         :rtype: graphalchemy.blueprints.schema.Node
         """
+        self.class_ = class_
         self.metadata.bind_node(class_, self)
         return self
 
@@ -174,15 +177,19 @@ class Node(Model):
         :param name: The name of the property to connect the node to.
         :type name: str
         """
-
         # Save in related models
         self._adjacencies[name] = adjacency
-        if adjacency.node is None:
-            adjacency.node = self
+        if adjacency.out_node != self and adjacency.in_node != self:
+            raise Exception('This adjacency cannot be mapped to this Node.')
 
-        # Register property
-        # @todo
+        if adjacency.out_node == self:
+            adjacency.out_method = name
+            direction = Relationship.OUT
+        else:
+            adjacency.in_method = name
+            direction = Relationship.IN
 
+        setattr(self.class_, name, RelationProxy(adjacency, name, direction))
         return self
 
 
@@ -191,6 +198,80 @@ class Node(Model):
         :rtype: str
         """
         return u'(' + self.model_name + u')'
+
+
+class RelationDict(dict):
+
+    def __init__(self, *args, **kwargs):
+        super(RelationDict, self).__init__(*args, **kwargs)
+        self.__adjacency = None
+        self.__direction = None
+        self.__unique = None
+        self.__parent = None
+
+    def configure(self, adjacency, direction, parent):
+        self.__parent = parent
+        self.__adjacency = adjacency
+        self.__direction = direction
+        self.__unique = adjacency.unique
+        if direction == Relationship.OUT:
+            self.__backref = adjacency.in_method
+        else:
+            self.__backref = adjacency.out_method
+        return self
+
+    def append(self, node):
+        """ Allows a list-like behavior like :
+        >>> website.hosts.append(page)
+        :param node: An instance of a class that is instrumented and allowed
+        by the adjacency.
+        :type node: object
+        """
+        return self.__setitem__(None, node)
+
+    def __setitem__(self, relationship, node):
+        """ Allows a dict-like behavior like :
+        >>> website.hosts[whp] = page
+        :param node: An instance of a class that is instrumented and allowed
+        by the adjacency.
+        :type node: object
+        """
+        if self.__unique == True and len(self.keys()) > 0:
+            raise Exception('Expected relation to be unique.')
+        if relationship is None:
+            relationship = self.__adjacency.relationship.class_()
+        if not isinstance(relationship, self.__adjacency.relationship.class_):
+            raise Exception('Expected relation to be instance of %s, got %s' % (self.__adjacency.relationship.class_, relationship, ))
+        super(RelationDict, self).__setitem__(relationship, node)
+        # Sets the relations ends
+        if self.__direction == Relationship.OUT:
+            relationship.outV = self.__parent
+            relationship.inV = node
+        else:
+            relationship.outV = node
+            relationship.inV = self.__parent
+        # Reverse side
+        reverse = getattr(node, self.__backref)
+        if relationship not in reverse:
+            # (prevents infinite loop)
+            reverse[relationship] = self.__parent
+
+
+class RelationProxy(object):
+
+    def __init__(self, adjacency, name, direction):
+        self.adjacency = adjacency
+        self.name = name
+        self.direction = direction
+
+    def __get__(self, instance, owner):
+        attr_name = "__ga_adj_"+self.name
+        if not hasattr(instance, attr_name):
+            adjacency = RelationDict()
+            adjacency.configure(self.adjacency, self.direction, instance)
+            setattr(instance, attr_name, adjacency)
+        return getattr(instance, attr_name)
+
 
 
 class Relationship(Model):
@@ -246,6 +327,7 @@ class Relationship(Model):
         :returns: This object itself.
         :rtype: graphalchemy.blueprints.schema.Model
         """
+        self.class_ = class_
         self.metadata.bind_relationship(class_, self)
 
 
@@ -302,11 +384,13 @@ class Adjacency(object):
     relationship connects.
     """
 
-    def __init__(self, relationship, nullable=None, unique=True, direction=None, node=None):
+    def __init__(self, out_node, relationship, in_node, nullable=None, unique=True):
         """ Defines the constraints to apply on an adjacency.
 
-        :param node: The node model that is connected.
-        :type node: graphalchemy.blueprints.schema.Node
+        :param in_node: The node model from which the relationship emerges.
+        :type in_node: graphalchemy.blueprints.schema.Node
+        :param out_node: The node model to which the relationship points.
+        :type out_node: graphalchemy.blueprints.schema.Node
         :param relationship: The relationship model that connects.
         :type relationship: graphalchemy.blueprints.schema.Relationship
         :param unique: Whether the given node can be connected to multiple
@@ -318,9 +402,11 @@ class Adjacency(object):
         :param direction: Whether the relation is IN-bound, or OUT-bound.
         :type direction: const
         """
-        self.node = node
+        self.in_node = in_node
+        self.in_method = None
+        self.out_node = out_node
+        self.out_method = None
         self.relationship = relationship
-        self.direction = direction
         self.unique = unique
         self.nullable = nullable
 
@@ -351,7 +437,7 @@ class Property(object):
         :type type_: graphalchemy.blueprints.types.Type
         :param nullable: Whether the property can be None.
         :type nullable: bool
-        :param unique: Whether the property value is unique in the entire graph.
+        :param unique: Whether the property node is unique in the entire graph.
         This is enforced as a unique-IN constraint in the graph type definition.
         :type unique: bool
         :param index: Which index to use to index the property. If True is
@@ -489,6 +575,21 @@ class MetaData(object):
         if class_ in self._relationships.keys():
             return self._relationships[class_]
         raise Exception('Unmapped class.')
+
+    def for_model_name(self, model_name):
+        """ Returns the Python class corresponding to a given model.
+
+        :param model: A graphalchemy model.
+        :type model: str
+        """
+        for class_, node_model in self._nodes.items():
+            if model_name == node_model.model_name:
+                return node_model
+        for class_, relationship_model in self._relationships.items():
+            if model_name == relationship_model.model_name:
+                return node_model
+        raise Exception('Unmapped model.')
+
 
     def for_model(self, model):
         """ Returns the Python class corresponding to a given model.
