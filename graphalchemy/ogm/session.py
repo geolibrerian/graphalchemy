@@ -65,7 +65,7 @@ class Session(object):
         return self
 
 
-    def flush(self):
+    def commit(self):
 
         uow = UnitOfWork(self.client, self.identity_map, self.metadata_map, logger=self.logger)
 
