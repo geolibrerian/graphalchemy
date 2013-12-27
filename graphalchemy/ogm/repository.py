@@ -131,7 +131,15 @@ class Repository(object):
             value = self.model.model_name
             query.filter_on_index(index_name, key, value)
 
-        query.filter(**kwargs)
+        # Rename filter keys if the db_name is not the same
+        filters = {}
+        for name_py, value in kwargs.iteritems():
+            prop = self.model._properties.get(name_py, None)
+            if prop is None:
+                raise Exception('Property %s not found in model %s' % (name_py, prop, ))
+            filters[prop.name_db] = value
+
+        query.filter(**filters)
         return query
 
 
