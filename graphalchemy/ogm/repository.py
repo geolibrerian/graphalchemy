@@ -105,8 +105,8 @@ class Repository(object):
         # @todo
         # add a check model
 
-        if result.id != id:
-            raise Exception('Expected '+str(id)+', got '+str(_id))
+        if int(result.id) != int(id):
+            raise Exception('Expected '+str(id)+', got '+str(result.id ))
 
         return result
 

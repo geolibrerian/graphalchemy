@@ -347,9 +347,6 @@ class ModelAwareQuery(Query):
         self.metadata_map = session.metadata_map
         super(ModelAwareQuery, self).__init__(session, *args, **kwargs)
 
-    def execute(self):
-        super(ModelAwareQuery, self).execute()
-        self.hydrate()
 
     def execute_raw_groovy(self, query, params={}):
         super(ModelAwareQuery, self).execute_raw_groovy(query, params=params)
@@ -368,16 +365,3 @@ class ModelAwareQuery(Query):
         if obj:
             return obj
         return self.metadata_map._object_from_dict(result)
-
-
-
-
-
-
-
-
-
-
-
-
-

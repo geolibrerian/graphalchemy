@@ -22,7 +22,7 @@ class UnitOfWork(object):
                 self._log("Found in identity map : updating "+str(identity.id))
                 # Get data to update
                 data = {}
-                for property in class_meta._properties:
+                for property in class_meta._properties.values():
                     python_value = getattr(obj, property.name_py)
                     property.validate(python_value)
                     if identity.attribute_has_changed(property.name_py, python_value):
