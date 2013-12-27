@@ -27,7 +27,7 @@ class OGM(object):
         self.client = client
         module = importlib.import_module(model_paths[0])
         self.metadata = module.__dict__.get('metadata')
-        self.session = Session(client=client, metadata=self.metadata, logger=self.logger)
+        self._session = None
         self.repositorys = {}
 
     def repository(self, model_name):
@@ -35,21 +35,30 @@ class OGM(object):
             return self.repositorys[model_name]
         model = self.metadata.for_model_name(model_name)
         class_ = self.metadata.for_model(model)
-        repository = Repository(self.session, model, class_, logger=self.logger)
+        repository = Repository(self.get_session(), model, class_, logger=self.logger)
         self.repositorys[model_name] = repository
         return repository
 
     def add(self, instance):
-        return self.session.add(instance)
+        return self.get_session().add(instance)
 
     def delete(self, instance):
-        return self.session.delete(instance)
+        return self.get_session().delete(instance)
 
     def commit(self):
-        return self.session.commit()
+        return self.get_session().commit()
+
+    def get_session(self):
+        if self._session is None:
+            self._session = Session(
+                client=self.client,
+                metadata=self.metadata,
+                logger=self.logger
+            )
+        return self._session
 
     def query(self, groovy, params):
-        query = ModelAwareQuery(self.session)
+        query = ModelAwareQuery(self.get_session())
         query.execute_raw_groovy(groovy, params)
         return query
 
