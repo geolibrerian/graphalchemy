@@ -48,6 +48,11 @@ class OGM(object):
     def commit(self):
         return self.get_session().commit()
 
+    def close(self):
+        self.get_session().clear()
+        self._session = None
+        return self
+
     def get_session(self):
         if self._session is None:
             self._session = Session(
