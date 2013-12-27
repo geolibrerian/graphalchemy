@@ -347,33 +347,21 @@ class ModelAwareQuery(Query):
         self.metadata_map = session.metadata_map
         super(ModelAwareQuery, self).__init__(session, *args, **kwargs)
 
-    def execute(self):
-        super(ModelAwareQuery, self).execute()
+
+    def execute_raw_groovy(self, query, params={}):
+        super(ModelAwareQuery, self).execute_raw_groovy(query, params=params)
+        self.hydrate()
+
+
+    def hydrate(self):
         for i, result in enumerate(self._results):
             self._results[i] = self._build_object(result)
 
-
     def _build_object(self, result):
-
         if not isinstance(result, dict):
             raise Exception('Expected dict, got '+str(result))
-
         # Check if not in session
-        obj = self.session.identity_map.get_by_id(dict_.get('eid'))
+        obj = self.session.identity_map.get_by_id(result.get('_id'))
         if obj:
             return obj
-
         return self.metadata_map._object_from_dict(result)
-
-
-
-
-
-
-
-
-
-
-
-
-

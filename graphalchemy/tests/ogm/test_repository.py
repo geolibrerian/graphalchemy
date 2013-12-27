@@ -23,11 +23,9 @@ class RepositoryTestCase(TestCase):
 	def setUp(self):
 		from bulbs.titan import TitanClient
 		client = TitanClient(db_name="graph")
-		from bulbs.rest import log
-		log.setLevel(1)
 		from graphalchemy.ogm.session import Session
-		self.session = Session(client=client, metadata=metadata, logger=log)
-		self.repository = Repository(self.session, page, Page, logger=log)
+		self.session = Session(client=client, metadata=metadata)
+		self.repository = Repository(self.session, page, Page)
 
 
 	def test_create(self):

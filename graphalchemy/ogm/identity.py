@@ -17,8 +17,8 @@ class IdentityMap(dict):
     def get_by_id(self, id):
         if id is None:
             return None
-    	for obj, state in self.iteritems():
-    		if obj.id == id:
-    			return obj
-		return None
+        for obj, state in self.iteritems():
+            if obj.id == id:
+                return obj
+        return None
 

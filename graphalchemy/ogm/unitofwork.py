@@ -22,7 +22,7 @@ class UnitOfWork(object):
                 self._log("Found in identity map : updating "+str(identity.id))
                 # Get data to update
                 data = {}
-                for property in class_meta._properties:
+                for property in class_meta._properties.values():
                     python_value = getattr(obj, property.name_py)
                     property.validate(python_value)
                     if identity.attribute_has_changed(property.name_py, python_value):
@@ -51,7 +51,18 @@ class UnitOfWork(object):
                 data[class_meta.model_name_storage_key] = class_meta.model_name
 
                 # Insert
-                response = self.client.create_vertex(data)
+                index_name = ''
+                if class_meta.is_node():
+                    response = self.client.create_vertex(data)
+                elif class_meta.is_relationship():
+                    data.pop('label')
+                    response = self.client.create_edge(
+                        obj.outV.id,
+                        class_meta.model_name,
+                        obj.inV.id,
+                        data
+                    )
+
 
                 # Update identity map
                 id = response.content['results']['_id']
@@ -60,6 +71,8 @@ class UnitOfWork(object):
                 self.identity_map[obj] = InstanceState(obj)
                 self.identity_map[obj].update_id(id)
                 self.identity_map[obj].update_attributes(data)
+
+
 
 
 

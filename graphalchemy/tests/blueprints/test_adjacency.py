@@ -29,7 +29,6 @@ class RelationshipTestCase(TestCase):
         metadata = MetaData()
         mapper = Mapper()
 
-
         class Page(object):
             pass
         class Website(object):

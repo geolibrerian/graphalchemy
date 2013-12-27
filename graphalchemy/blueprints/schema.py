@@ -189,7 +189,7 @@ class Node(Model):
             adjacency.in_method = name
             direction = Relationship.IN
 
-        setattr(self.class_, name, RelationProxy(adjacency, name, direction))
+        setattr(self.class_, name, RelationProxy(adjacency, direction, name))
         return self
 
 
@@ -201,24 +201,23 @@ class Node(Model):
 
 
 class RelationDict(dict):
+    """ In graphalchemy, we represent the relations between nodes as dictionaries,
+    which keys are the edges, and which values are the vertices that are connected.
 
-    def __init__(self, *args, **kwargs):
-        super(RelationDict, self).__init__(*args, **kwargs)
-        self.__adjacency = None
-        self.__direction = None
-        self.__unique = None
-        self.__parent = None
+    This class overloads the classic dictionary representation in order to allow
+    to easily add adjacent vertices and update the corresponding edges.
+    """
 
-    def configure(self, adjacency, direction, parent):
-        self.__parent = parent
+    def __init__(self, adjacency, direction, parent):
         self.__adjacency = adjacency
         self.__direction = direction
-        self.__unique = adjacency.unique
+        self.__parent = parent
         if direction == Relationship.OUT:
+            self.__directref = adjacency.out_method
             self.__backref = adjacency.in_method
         else:
+            self.__directref = adjacency.in_method
             self.__backref = adjacency.out_method
-        return self
 
     def append(self, node):
         """ Allows a list-like behavior like :
@@ -236,8 +235,6 @@ class RelationDict(dict):
         by the adjacency.
         :type node: object
         """
-        if self.__unique == True and len(self.keys()) > 0:
-            raise Exception('Expected relation to be unique.')
         if relationship is None:
             relationship = self.__adjacency.relationship.class_()
         if not isinstance(relationship, self.__adjacency.relationship.class_):
@@ -258,8 +255,12 @@ class RelationDict(dict):
 
 
 class RelationProxy(object):
+    """ Proxy that allows us to dynamically create a RelationShip dict
+    when the property of an instance is called. The goal here is to allow
+    overriding the class similarly as with a @property annotation.
+    """
 
-    def __init__(self, adjacency, name, direction):
+    def __init__(self, adjacency, direction, name):
         self.adjacency = adjacency
         self.name = name
         self.direction = direction
@@ -267,8 +268,7 @@ class RelationProxy(object):
     def __get__(self, instance, owner):
         attr_name = "__ga_adj_"+self.name
         if not hasattr(instance, attr_name):
-            adjacency = RelationDict()
-            adjacency.configure(self.adjacency, self.direction, instance)
+            adjacency = RelationDict(self.adjacency, self.direction, instance)
             setattr(instance, attr_name, adjacency)
         return getattr(instance, attr_name)
 
@@ -714,20 +714,23 @@ class MetaData(object):
 
         # Verify type
         _type = dict_.pop('_type')
-        self._check_type(_type)
+        # self._check_type(_type)
 
         # Build object
         class_ = self.for_model(model)
-        obj = class_(results)
-        self._update_object(obj, results)
-        obj.id = id
+        obj = class_(dict_)
+        self._update_object(obj, dict_, model)
+        # obj.id = id
         return obj
 
 
-    def _update_object(self, obj, results):
+    def _update_object(self, obj, results, model):
         for property_db, value_db in results.iteritems():
+            if property_db == '_id':
+                setattr(obj, 'id', value_db)
+                continue
             found = False
-            for property in self.model._properties.values():
+            for property in model._properties.values():
                 if property.name_db != property_db:
                     continue
                 found = True

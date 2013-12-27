@@ -5,14 +5,69 @@
 #                                      IMPORTS
 # ==============================================================================
 
+# System
+import importlib
+
+# Services
 from graphalchemy.ogm.identity import IdentityMap
 from graphalchemy.ogm.unitofwork import UnitOfWork
 from graphalchemy.ogm.state import InstanceState
+from graphalchemy.ogm.repository import Repository
+from graphalchemy.ogm.query import ModelAwareQuery
 
 
 # ==============================================================================
 #                                     SERVICE
 # ==============================================================================
+
+class OGM(object):
+
+    def __init__(self, client, model_paths=[], logger=None):
+        self.logger = logger
+        self.client = client
+        module = importlib.import_module(model_paths[0])
+        self.metadata = module.__dict__.get('metadata')
+        self._session = None
+        self.repositorys = {}
+
+    def repository(self, model_name):
+        if model_name in self.repositorys:
+            return self.repositorys[model_name]
+        model = self.metadata.for_model_name(model_name)
+        class_ = self.metadata.for_model(model)
+        repository = Repository(self.get_session(), model, class_, logger=self.logger)
+        self.repositorys[model_name] = repository
+        return repository
+
+    def add(self, instance):
+        return self.get_session().add(instance)
+
+    def delete(self, instance):
+        return self.get_session().delete(instance)
+
+    def commit(self):
+        return self.get_session().commit()
+
+    def close(self):
+        self.get_session().clear()
+        self._session = None
+        return self
+
+    def get_session(self):
+        if self._session is None:
+            self._session = Session(
+                client=self.client,
+                metadata=self.metadata,
+                logger=self.logger
+            )
+        return self._session
+
+    def query(self, groovy, params):
+        query = ModelAwareQuery(self.get_session())
+        query.execute_raw_groovy(groovy, params)
+        return query
+
+
 
 class Session(object):
 
