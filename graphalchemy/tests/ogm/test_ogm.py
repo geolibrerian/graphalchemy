@@ -11,7 +11,6 @@ from unittest import TestCase
 from graphalchemy.fixture.declarative import Page
 from graphalchemy.fixture.declarative import Website
 from graphalchemy.fixture.declarative import WebsiteHostsPage
-from graphalchemy.fixture.declarative import metadata
 
 # Services
 
@@ -25,7 +24,7 @@ class RepositoryTestCase(TestCase):
         from bulbs.titan import TitanClient
         client = TitanClient(db_name="graph")
         from graphalchemy.ogm.session import OGM
-        self.ogm = OGM(client=client, metadata=metadata)
+        self.ogm = OGM(client=client, model_paths=["graphalchemy.fixture.declarative"])
 
 
     def test_persist_relation(self):

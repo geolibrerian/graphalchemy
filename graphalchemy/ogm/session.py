@@ -5,12 +5,16 @@
 #                                      IMPORTS
 # ==============================================================================
 
+# System
+import importlib
+
+# Services
 from graphalchemy.ogm.identity import IdentityMap
 from graphalchemy.ogm.unitofwork import UnitOfWork
 from graphalchemy.ogm.state import InstanceState
-
 from graphalchemy.ogm.repository import Repository
 from graphalchemy.ogm.query import ModelAwareQuery
+
 
 # ==============================================================================
 #                                     SERVICE
@@ -18,11 +22,12 @@ from graphalchemy.ogm.query import ModelAwareQuery
 
 class OGM(object):
 
-    def __init__(self, client, metadata, logger=None):
+    def __init__(self, client, model_paths=[], logger=None):
         self.logger = logger
         self.client = client
-        self.metadata = metadata
-        self.session = Session(client=client, metadata=metadata, logger=self.logger)
+        module = importlib.import_module(model_paths[0])
+        self.metadata = module.__dict__.get('metadata')
+        self.session = Session(client=client, metadata=self.metadata, logger=self.logger)
         self.repositorys = {}
 
     def repository(self, model_name):
