@@ -9,10 +9,46 @@ from graphalchemy.ogm.identity import IdentityMap
 from graphalchemy.ogm.unitofwork import UnitOfWork
 from graphalchemy.ogm.state import InstanceState
 
+from graphalchemy.ogm.repository import Repository
+from graphalchemy.ogm.query import Query
 
 # ==============================================================================
 #                                     SERVICE
 # ==============================================================================
+
+class OGM(object):
+
+    def __init__(self, client, metadata, logger=None):
+        self.logger = logger
+        self.client = client
+        self.metadata = metadata
+        self.session = Session(client=client, metadata=metadata, logger=self.logger)
+        self.repositorys = {}
+
+    def repository(self, model_name):
+        if model_name in self.repositorys:
+            return self.repositorys[model_name]
+        model = self.metadata.for_model_name(model_name)
+        class_ = self.metadata.for_model(model)
+        repository = Repository(self.session, model, class_, logger=self.logger)
+        self.repositorys[model_name] = repository
+        return repository
+
+    def add(self, instance):
+        return self.session.add(instance)
+
+    def delete(self, instance):
+        return self.session.delete(instance)
+
+    def commit(self):
+        return self.session.commit()
+
+    def query(self, groovy, params):
+        query = Query(self.session)
+        query.execute_raw_groovy(groovy, params)
+        return query
+
+
 
 class Session(object):
 
