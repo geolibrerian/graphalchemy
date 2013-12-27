@@ -56,16 +56,17 @@ class RepositoryTestCase(TestCase):
         self.ogm.add(whp2)
         self.ogm.commit()
 
+        # Check that ids are assigned
         self.assertTrue(website1.id is not None)
         self.assertTrue(page1.id is not None)
         self.assertTrue(page2.id is not None)
         self.assertTrue(whp1.id is not None)
         self.assertTrue(whp2.id is not None)
 
-        # query = self.ogm.query("g.v(%i).outE" % (website1.id, ), {})
+        # Check that the relation was created DB-side
         query = self.ogm.query("g.v(eid).out('hosts')", {'eid': website1.id})
-        print query._results
-        assert False
+        self.assertIn(page1, query._results)
+        self.assertIn(page2, query._results)
 
 
 

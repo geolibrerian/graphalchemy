@@ -714,20 +714,23 @@ class MetaData(object):
 
         # Verify type
         _type = dict_.pop('_type')
-        self._check_type(_type)
+        # self._check_type(_type)
 
         # Build object
         class_ = self.for_model(model)
-        obj = class_(results)
-        self._update_object(obj, results)
-        obj.id = id
+        obj = class_(dict_)
+        self._update_object(obj, dict_, model)
+        # obj.id = id
         return obj
 
 
-    def _update_object(self, obj, results):
+    def _update_object(self, obj, results, model):
         for property_db, value_db in results.iteritems():
+            if property_db == '_id':
+                setattr(obj, 'id', value_db)
+                continue
             found = False
-            for property in self.model._properties.values():
+            for property in model._properties.values():
                 if property.name_db != property_db:
                     continue
                 found = True

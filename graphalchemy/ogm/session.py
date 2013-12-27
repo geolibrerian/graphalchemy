@@ -10,7 +10,7 @@ from graphalchemy.ogm.unitofwork import UnitOfWork
 from graphalchemy.ogm.state import InstanceState
 
 from graphalchemy.ogm.repository import Repository
-from graphalchemy.ogm.query import Query
+from graphalchemy.ogm.query import ModelAwareQuery
 
 # ==============================================================================
 #                                     SERVICE
@@ -44,7 +44,7 @@ class OGM(object):
         return self.session.commit()
 
     def query(self, groovy, params):
-        query = Query(self.session)
+        query = ModelAwareQuery(self.session)
         query.execute_raw_groovy(groovy, params)
         return query
 
