@@ -5,7 +5,7 @@
 #                                      IMPORTS
 # ==============================================================================
 
-from datetime import datetime
+import datetime
 
 class Base(object):
     def __init__(self, *args, **kwargs):
@@ -35,7 +35,7 @@ class Page(Base):
 class WebsiteHostsPage(Base):
     def __init__(self, *args, **kwargs):
         self.label = 'hosts'
-        self.since = None
+        self.since = datetime.datetime.now()
         self.accessible = None
         super(WebsiteHostsPage, self).__init__(*args, **kwargs)
 
@@ -66,12 +66,11 @@ page = Node('Page', metadata,
 )
 
 websiteHostsPageZ = Relationship('hosts', metadata,
-    Property('since', DateTime, nullable=False),
+    Property('since', DateTime(), nullable=False),
     Property('accessible', Boolean())
 )
 
 websiteHostsPage_adj = Adjacency(website, websiteHostsPageZ, page,
-    direction=Relationship.OUT,
     unique=False,
     nullable=True
 )
