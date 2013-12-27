@@ -33,7 +33,6 @@ class Type(object):
         """
         return value
 
-
     def to_db(self, value):
         """ Coerces the value to the appropriate database type.
 
@@ -60,6 +59,8 @@ class Type(object):
 
 class Numeric(Type):
 
+    name_db = "Float.class"
+
     def __init__(self, min_value=None, max_value=None):
         """ Defines the specifications of the Type.
 
@@ -84,9 +85,27 @@ class Numeric(Type):
         return super(Numeric, self).validate(value)
 
 
-class Integer(Numeric):
+class Integer(Type):
 
     name_db = "Integer.class"
+
+    def __init__(self, n_digits=10):
+        """ Defines the specifications of the Type.
+
+        This class interfaces python conception of Integer with java
+        corresponding concepts: Integer, BigInteger and Long.
+        Class casting allows to keep the python conception of Integer,
+        and to distribute it to java classes.
+
+        :param n_digits: The maximal number of digits composing the value.
+        :type n_digits: int
+        """
+        if 10 < n_digits < 20:
+            self.__class__ = Long
+        elif n_digits >= 20:
+            self.__class__ = BigInteger
+
+        self.n_digits = n_digits
 
     def to_py(self, value):
         return int(value)
@@ -94,7 +113,17 @@ class Integer(Numeric):
     def validate(self, value):
         if not isinstance(value, int):
             return False, [u'Wrong type : expected int, got '+str(type(value))]
-        return super(Integer, self).validate(value)
+        return True
+
+
+class Long(Integer):
+
+    name_db = "Long.class"
+
+
+class BigInteger(Integer):
+
+    name_db = "BigInteger.class"
 
 
 class Float(Numeric):
@@ -120,6 +149,8 @@ class Boolean(Integer):
 
 
 class Const(Type):
+
+    name_db = "Integer.class"
 
     def __init__(self, choices):
         """ Defines the specifications of the Type.
@@ -197,6 +228,8 @@ class DateTime(Type):
 
 class Date(Type):
 
+    name_db = "Date.class"
+
     def validate(self, value):
         if not isinstance(value, date):
             return False, [u'Wrong type : expected date, got '+str(type(value))]
@@ -205,13 +238,10 @@ class Date(Type):
 
 class List(Type):
 
-    name_db = 'Collection.class'
-
+    name_db = 'ArrayList.class'
 
 
 class Dict(Type):
 
-    name_db = 'Map.class'
-
-
+    name_db = 'HashMap.class'
 

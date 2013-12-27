@@ -8,6 +8,7 @@
 import itertools
 from collections import Iterable
 from os import path
+import regex
 
 
 # =============================================================================
@@ -71,7 +72,7 @@ class VisualizationGenerator(object):
         :param node: The node object to be treated.
         :type node: graphalchemy.blueprints.schema.Node
         """
-        name = str(node)
+        name = regex.match(r'\((?P<name>.*)\)', str(node)).groupdict()['name']
         properties = [prop.name_db for prop in node._properties.values()]
         node_dot_instance = self._generate_node_instance(name, properties)
         self._nodes[node] = node_dot_instance
@@ -113,7 +114,7 @@ class VisualizationGenerator(object):
     def write_output(self):
         """ Write formatted output in a file or multiple file for multiple graphs.
         """
-        if isinstance(self._output, str):
+        if isinstance(self._output, str) or isinstance(self._output, unicode):
             full_path = path.join(self.output_path, self.filename + '.dot')
             with open(full_path, 'w') as f:
                 f.write(self._output)
@@ -350,11 +351,18 @@ class GraphvizVisualizationGenerator(VisualizationGenerator):
             adjacencies and properties.
         """
         property_labels = self._get_formatted_property_list(properties)
-        return " ".join(['"node_%s"' % str(binding['out'].node),
+        name_node_in = regex.match(r'\((?P<name>.*)\)',
+                                   str(binding['in'].node)).groupdict()['name']
+        name_node_out = regex.match(r'\((?P<name>.*)\)',
+                                    str(binding['out'].node)).groupdict()['name']
+        relationship_label = regex.match(r'-\[:(?P<name>.*)\]->',
+                                         str(binding['out'].relationship)).groupdict()['name']
+        
+        return " ".join(['"node_%s"' % name_node_out,
                          '->',
-                         '"node_%s"' % str(binding['in'].node),
+                         '"node_%s"' % name_node_in,
                          "[",
-                         'label = "%s \\n\ %s "' % (binding['out'].relationship,
+                         'label = "%s \\n\ %s "' % (relationship_label,
                                                     property_labels),
                          'taillabel="%s"' % ('1\t'
                                              if binding['out'].unique

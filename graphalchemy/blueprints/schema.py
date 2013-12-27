@@ -427,7 +427,7 @@ class Property(object):
     - primaryKey definition for edges
     """
 
-    def __init__(self, name_py, type_, nullable=None, unique=False, index=None, primaryKey=False, group=None, prefix=False, name_db=None):
+    def __init__(self, name_py, type_, nullable=None, unique=False, index=None, primaryKey=False, group=None, prefix=False, name_db=None, no_conflict=False):
         """ Defines the constraints to apply on a property.
 
         :param name_py: The name of the property in the Python objects
@@ -458,6 +458,10 @@ class Property(object):
         :type prefix: bool
         :param name_db: The name of the property in the database. Defaults to
         the name of the property in Python.
+        :type name_db: str
+        :param no_conflict: Whether the property is allowed to be attributed to
+        different node or relationship models.
+        :type no_conflict: bool
         """
 
         self.model = None
@@ -484,6 +488,8 @@ class Property(object):
 
         self.group = group
         self.primaryKey = primaryKey
+
+        self.no_conflict = no_conflict
 
 
     def to_py(self, value):
