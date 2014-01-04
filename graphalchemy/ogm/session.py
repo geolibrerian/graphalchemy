@@ -11,7 +11,6 @@ import importlib
 # Services
 from graphalchemy.ogm.identity import IdentityMap
 from graphalchemy.ogm.unitofwork import UnitOfWork
-from graphalchemy.ogm.state import InstanceState
 from graphalchemy.ogm.repository import Repository
 from graphalchemy.ogm.query import ModelAwareQuery
 
@@ -21,6 +20,10 @@ from graphalchemy.ogm.query import ModelAwareQuery
 # ==============================================================================
 
 class OGM(object):
+    """ The OGM articulates all services in one central object so the end-user
+    can quickly access them. Notably, it acts as a factory for repositorys, and
+    as a proxy for the current session.
+    """
 
     def __init__(self, client, model_paths=[], logger=None):
         self.logger = logger
@@ -31,6 +34,8 @@ class OGM(object):
         self.repositorys = {}
 
     def repository(self, model_name):
+        """ Returns the repository corresponding to the requested model.
+        """
         if model_name in self.repositorys:
             return self.repositorys[model_name]
         model = self.metadata.for_model_name(model_name)
@@ -70,6 +75,11 @@ class OGM(object):
 
 
 class Session(object):
+    """ Defines a session where a set of modifications will happen. A session
+    defines which entities will be synchronized with the database. Such
+    modifications will happen grouped in a unitofwork when the commit() method
+    is called.
+    """
 
     def __init__(self, client, metadata, logger=None):
         self.identity_map = IdentityMap()
@@ -77,72 +87,75 @@ class Session(object):
         self.client = client
         self.logger = logger
 
-        self._update = []
+        self._add = []
         self._delete = []
-        self._new = []
 
 
     def add(self, instance):
-        if instance in self.identity_map:
-            self._update.append(instance)
-        else:
-            self._new.append(instance)
+        """ Adds an instance to the session, so it is updated / inserted at
+        the next commit.
+        :param instance: The instance to add to the session.
+        :type instance: graphalchemy.blueprints.schema.Model
+        :returns: This object itself.
+        :rtype: graphalchemy.ogm.session.Session
+        """
+        if instance in self._delete:
+            self._delete.removeitem(instance)
+        if instance in self._add:
+            self._log('Instance already tracked.')
+            return self
+        self._add.append(instance)
         return self
 
 
     def delete(self, instance):
+        """ Schedules an instance for deletion, so it is deleted at the
+        next commit.
+        :param instance: The instance to delete in the session.
+        :type instance: graphalchemy.blueprints.schema.Model
+        :returns: This object itself.
+        :rtype: graphalchemy.ogm.session.Session
+        """
         if instance not in self.identity_map:
             raise Exception('Object is not in the identity map.')
+        if instance in self._add:
+            self._add.removeitem(instance)
+        if instance in self._delete:
+            self._log('Instance already scheduled for delete.')
+            return self
         self._delete.append(instance)
         return self
 
 
-    def get_vertex(self, id):
-        obj = self.identity_map.get_by_id(id)
-        if obj:
-            return obj, False
-        return self.client.get_vertex(id), True
-
-
-    def add_to_identity_map(self, obj):
-        # Add to the identity_map
-        self.identity_map[obj] = InstanceState(obj)
-        self.identity_map[obj].update_id(id)
-        # self.identity_map[obj].update_attributes(data)
-        return self
-
-
     def clear(self):
+        """ Clears the current session.
+        :returns: This object itself.
+        :rtype: graphalchemy.ogm.session.Session
+        """
         self.identity_map.clear()
-        self._update = []
         self._delete = []
-        self._new = []
+        self._add = []
         return self
 
 
     def commit(self):
+        """ Performs all changes scheduled in the current session, grouped in
+        a UnitOfWork.
+        :returns: This object itself.
+        :rtype: graphalchemy.ogm.session.Session
+        """
 
         uow = UnitOfWork(self.client, self.identity_map, self.metadata_map, logger=self.logger)
 
-        # We need to save nodes first
-        for obj in self._new:
+        # We need to save/update nodes first
+        for obj in self._add:
             if self.metadata_map.is_node(obj):
-                uow.register_object(obj, 'new')
+                uow.register_object(obj, 'add')
                 self._log("Inserted "+str(obj))
-        for obj in self._new:
+        for obj in self._add:
             if self.metadata_map.is_relationship(obj):
-                uow.register_object(obj, 'new')
+                uow.register_object(obj, 'add')
                 self._log("Inserted "+str(obj))
-
-        # Update all other nodes
-        for obj in self._update:
-            if self.metadata_map.is_node(obj):
-                uow.register_object(obj, 'update')
-                self._log("Updated "+str(obj))
-        for obj in self._update:
-            if self.metadata_map.is_relationship(obj):
-                uow.register_object(obj, 'update')
-                self._log("Updated "+str(obj))
 
         # We need to delete relations first
         for obj in self._delete:
@@ -153,6 +166,7 @@ class Session(object):
             if self.metadata_map.is_node(obj):
                 uow.register_object(obj, 'delete')
                 self._log("Deleted "+str(obj))
+        self._delete = []
 
         return self
 
@@ -161,3 +175,12 @@ class Session(object):
         if self.logger is None:
             return self
         self.logger.log(level, message)
+        return self
+
+
+    def get_vertex(self, id):
+        obj = self.identity_map.get_by_id(id)
+        if obj:
+            return obj, False
+        return self.client.get_vertex(id), True
+
