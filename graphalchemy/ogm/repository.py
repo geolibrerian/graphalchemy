@@ -111,7 +111,6 @@ class Repository(object):
         return result
 
 
-
     def filter(self, **kwargs):
         """ We have to pre-process the query here to use the right index.
         """
@@ -143,25 +142,9 @@ class Repository(object):
         return query
 
 
-    def _build_object(self, results):
-        obj = self.class_(results)
-        self._update_object(obj, results)
-        return obj
-
-
-    def _update_object(self, obj, results):
-        for property_db, value_db in results.iteritems():
-            found = False
-            for property in self.model._properties.values():
-                if property.name_db != property_db:
-                    continue
-                found = True
-                break
-            if not found:
-                raise Exception('Property retrieved but not found : '+property_db)
-            value_py = property.to_py(value_db)
-            setattr(obj, property.name_py, value_py)
-        return obj
+    def truncate(self):
+        query = self.filter().delete()
+        return self
 
 
     def _check_model_name(self, model_name):
@@ -186,7 +169,6 @@ class Repository(object):
         :param level: The level of the log.
         :type level: int
         :returns: This object itself.
-        :rtype: graphalchemy.blueprints.schema.Validator
         """
         if self.logger is not None:
             self.logger.log(level, message)

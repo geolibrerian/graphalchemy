@@ -6,10 +6,9 @@
 # ==============================================================================
 
 from urllib import quote
-from urllib import quote_plus
-from urllib import urlencode
 
 from bulbs.gremlin import Gremlin
+
 
 # ==============================================================================
 #                                      EXCEPTIONS
@@ -27,6 +26,9 @@ class MultipleResultsFound(Exception):
 # ==============================================================================
 
 class Query(object):
+    """ A Query object provides a python-inspired interface aiming to provide
+    a gremlin-like interface directly in Python.
+    """
 
     EDGE = 'edge'
     VERTEX = 'vertex'
@@ -63,6 +65,7 @@ class Query(object):
         self._on = self.EDGE
         return self
 
+
     def vertices(self):
         """ Specifies that the query is made on vertices.
 
@@ -75,7 +78,6 @@ class Query(object):
         """
         self._on = self.VERTEX
         return self
-
 
 
     def filter(self, **kwargs):
@@ -325,6 +327,12 @@ class Query(object):
             yield result
 
 
+    def delete(self):
+        script, params = self.compile()
+        script += '.remove()'
+        return self.execute_raw_groovy(script, params)
+
+
     def _log(self, message, level=10):
         """ Thin wrapper for logging purposes.
 
@@ -350,7 +358,8 @@ class ModelAwareQuery(Query):
 
     def execute_raw_groovy(self, query, params={}):
         super(ModelAwareQuery, self).execute_raw_groovy(query, params=params)
-        self.hydrate()
+        if self._results is not None:
+            self.hydrate()
 
 
     def hydrate(self):
@@ -364,4 +373,8 @@ class ModelAwareQuery(Query):
         obj = self.session.identity_map.get_by_id(result.get('_id'))
         if obj:
             return obj
-        return self.metadata_map._object_from_dict(result)
+        obj = self.metadata_map._object_from_dict(result)
+        # Register in identity map
+        self.session.identity_map.add(obj, update=True)
+        return obj
+
