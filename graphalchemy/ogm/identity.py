@@ -21,13 +21,16 @@ class IdentityMap(dict):
     and values are the corresponding state.
     """
 
-    def add(self, obj):
+    def add(self, obj, update=False):
         """ Adds an object to the identity map. If the object is not known, creates
         a fresh InstanceState.
         """
         if obj in self:
             return self
         state = InstanceState(obj)
+        if update:
+            state.update_id(obj.id)
+            state.update_attributes(data)
         return super(IdentityMap, self).__setitem__(obj, state)
 
 

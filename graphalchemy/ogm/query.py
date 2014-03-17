@@ -236,7 +236,6 @@ class Query(object):
 
     def execute_raw_groovy(self, query, params={}):
         response = self.gremlin.execute(query, params=params)
-        print response.content
         self._results = response.content['results']
         return self
 
@@ -376,6 +375,6 @@ class ModelAwareQuery(Query):
             return obj
         obj = self.metadata_map._object_from_dict(result)
         # Register in identity map
-        self.session.identity_map.add(obj)
+        self.session.identity_map.add(obj, update=True)
         return obj
 

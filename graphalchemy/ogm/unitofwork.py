@@ -35,7 +35,6 @@ class UnitOfWork(object):
             raise Exception('Object has no id.')
 
         class_meta = self.metadata_map.for_object(obj)
-        print obj.id
         if class_meta.is_node():
             response = self.client.delete_vertex(obj.id)
             self._log("Deleted node %i" % (obj.id, ))
@@ -73,11 +72,17 @@ class UnitOfWork(object):
                 self._log('  Property '+str(property)+' has not changed.')
 
         # Update
-        if len(data):
-            response = self.client.update_vertex(identity.id, data)
-            self._log("Updated "+str(identity.id))
-        else:
+        if not len(data):
             self._log("Nothing to update in "+str(identity.id))
+            return self
+
+        if class_meta.is_node():
+            response = self.client.update_vertex(identity.id, data)
+            print response.content
+            self._log("Updated node "+str(identity.id))
+        elif class_meta.is_relationship():
+            response = self.client.update_edge(identity.id, data)
+            self._log("Updated edge "+str(identity.id))
 
         return self
 
@@ -112,10 +117,7 @@ class UnitOfWork(object):
         id = response.content['results']['_id']
         self._log('  Property '+str('id')+' updated to '+str(id))
         obj.id = id
-        self.identity_map.add(obj)
-        self.identity_map[obj].update_id(id)
-        self.identity_map[obj].update_attributes(data)
-
+        self.identity_map.add(obj, update=True)
         return self
 
 

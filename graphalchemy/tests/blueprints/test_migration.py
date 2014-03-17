@@ -83,7 +83,6 @@ class TestMigrationGenerator(TestCase):
         self.migration_generator = MigrationGenerator(self.metadata)
 
         self.migration_generator.run()
-        print str(self.migration_generator)
 
         self.assertEquals(self.migration_generator._queries, [
             '// Groups',

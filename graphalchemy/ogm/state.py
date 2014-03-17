@@ -37,5 +37,7 @@ class InstanceState(object):
 
     def attribute_has_changed(self, attribute, value):
         if attribute not in self._attributes:
+            if value is None:
+                return False
             return True
         return (self._attributes[attribute] != value)
